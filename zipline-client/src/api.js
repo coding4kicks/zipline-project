@@ -34,7 +34,29 @@ const Order = {
   }, {
     "delivered":true,"hospital":1,"id":18,"products":['RBC B Adult'], "state":"DELIVERED"
   }]
-}
+};
+
+const FulfilledOrders = [{
+  name: "Bigogwe",
+  id: "1",
+  orders: [{
+    id: "1",
+    products: ['RBC B Adult', 'RBC c Adult']
+  },{
+    id: "2",
+    products: ['RBC A Adult', 'RBC E Adult']
+  }]
+},{
+  name: "Littgogwe",
+  id: "2",
+  orders: [{
+    id: "3",
+    products: ['RBC E Adult', 'RBC G Adult']
+  },{
+    id: "4",
+    products: ['RBC A Adult', 'RBC E Adult']
+  }]
+}];
 
 export function getHospitals() {
   return new Promise((resolve, reject) => {
@@ -73,5 +95,12 @@ export function getOrderStatus(orderId) {
   console.log('fetching order status');
   return new Promise((resolve, reject) => {
     setTimeout(function(){ resolve(Order) }, 3000);
+  });
+}
+
+export function getFulfilledOrders() {
+  console.log('fetching fulfilled orders');
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve(FulfilledOrders) }, 3000);
   });
 }

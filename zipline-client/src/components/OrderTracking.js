@@ -53,8 +53,6 @@ class OrderTracking extends React.Component {
       return <div>No order selected</div>
     }
 
-    console.log("order", this.state.order);
-
     return this.state.order.flights.map(flight => {
       const { id, state, delivery_eta_s, hospital, products } = flight;
       const primary = `Flight ${id} is deliverying ${products.join(", ")} to hospital ${hospital}`;
