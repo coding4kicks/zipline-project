@@ -4,10 +4,10 @@ import OrderTracking from './OrderTracking';
 import OrderAudit from './OrderAudit';
 import { Pages } from '../utility';
 
-function Router({ location }) {
+function Router({ location, navigate }) {
   switch (location) {
     case Pages.ORDER_PLACEMENT:
-      return <OrderPlacement />;
+      return <OrderPlacement navigate={navigate} />;
     case Pages.ORDER_TRACKING:
       return <OrderTracking />;
     case Pages.ORDER_AUDIT:

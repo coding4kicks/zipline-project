@@ -12,6 +12,10 @@
   padding: 32px;
 }
 
+.Paper {
+  padding: 24px;
+};
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);

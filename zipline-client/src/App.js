@@ -15,12 +15,11 @@ class App extends React.Component {
   navigate = location => this.setState({ location });
 
   render() {
-    console.log("here", this.state.location)
     return (
       <div className="App">
         <ZiplineAppBar navigate={this.navigate} />
         <div className="Page">
-          <Router location={this.state.location} />
+          <Router location={this.state.location} navigate={this.navigate} />
         </div>
       </div>
     );
