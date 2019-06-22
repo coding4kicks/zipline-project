@@ -38,3 +38,17 @@ export function getInventory() {
     setTimeout(function(){ resolve(Inventory) }, 1000);
   });
 }
+
+export function scheduleOrder(order) {
+  console.log('schedulign order', order);
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve('order scheduled') }, 3000);
+  });
+}
+
+export function confirmOrder(orderId) {
+  console.log('schedulign order', orderId);
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve('order confirmed') }, 3000);
+  });
+}

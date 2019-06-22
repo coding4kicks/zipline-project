@@ -26,13 +26,14 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import { Pages, findByProp } from '../utility';
-import { getHospitals, getInventory } from '../api';
+import { getHospitals, getInventory, scheduleOrder, confirmOrder } from '../api';
 import '../App.css';
 
 class OrderPlacement extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
+      orderId: '',
       hospital: 0,
       hospitals: [],
       count: 1,
@@ -52,12 +53,15 @@ class OrderPlacement extends React.Component {
     const inventoryPromise = getInventory();
     Promise.all([hospitalsPromise, inventoryPromise]).then(results => {
       this.setState({hospitals: results[0], inventory: results[1]});
-    })
+    }).catch(error => console.log('Error loading data', error));
   }
 
   addItems = () => {
     const products = this.state.products.slice();
     const { count, product: productId } = this.state;
+
+    if (!productId) return console.log("Can't add when no product selected");
+
     const productItem = findByProp(this.state.inventory, productId, 'id');
     
     // Don't add if product is already in order or count is more than inventory
@@ -99,17 +103,35 @@ class OrderPlacement extends React.Component {
   }
 
   handleConfirm = () => {
-    console.log('order', this.state.products);
-    this.setState({ dialogOpen: false }, () => this.props.navigate(Pages.ORDER_TRACKING))
+    this.setState({
+      dialogTitle: 'Confirming your order...'
+    }, () => {
+      confirmOrder(this.state.orderId).then(results => {
+        this.setState({ dialogOpen: false }, () => this.props.navigate(Pages.ORDER_TRACKING))
+      }).catch(error => console.log("Error confirming order", error));
+    });
   }
 
   scheduleOrder = () => {
-    // TODO: call back end to schedule then launch dialog
+    const order = {
+      hospital: this.state.hospital,
+      products: this.state.products
+    }
+
+    if (!order.hospital) {
+      return this.setState({
+        dialogOpen: true,
+        dialogTitle: 'No hospital selected',
+        dialogDescription: 'Please select a hospital for delivery.',
+        dialogCloseText: 'Okay'
+      });
+    }
+
     this.setState({
       dialogOpen: true,
-      dialogTitle: 'Confirm Your Order',
+      dialogTitle: 'Scheduling your order...',
       dialogDescription: (
-        <span>
+        <span style={{minWidth: '400px'}}>
           {this.state.products.map(productItem => {
             const {id, count, product} = productItem;
             return (
@@ -121,8 +143,16 @@ class OrderPlacement extends React.Component {
         </span>
       ),
       dialogCloseText: 'Cancel',
-      dialogConfirmText: 'Confirm'
-    })
+      dialogConfirmText: ''
+    }, () => {
+      scheduleOrder(order).then(orderId => {
+        this.setState({
+          dialogTitle: 'Confirm your order',
+          dialogConfirmText: 'Confrim',
+          orderId: orderId   
+        });
+      }).catch(error => console.log('Error scheduling order', error));
+    });
   }
 
   renderHospitalMenuItems = () => {
@@ -152,7 +182,6 @@ class OrderPlacement extends React.Component {
   }
 
   renderProducts = () => {
-
     if (this.state.products.length < 1) {
       return <div>No items in order</div>
     }

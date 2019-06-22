@@ -16,7 +16,7 @@ const useStyles = makeStyles(theme => ({
   },
   title: {
     flexGrow: 1,
-  },
+  }
 }));
 
 function ZiplineAppBar({ navigate }) {
@@ -24,15 +24,15 @@ function ZiplineAppBar({ navigate }) {
 
   return (
     <div className={classes.root}>
-      <AppBar position="static">
+      <AppBar position='static'>
         <Toolbar>
-          <img src={logo} className="App-logo" alt="logo" />
-          <Typography variant="h6" className={classes.title}>
+          <img src={logo} className={'App-logo'} alt='logo' />
+          <Typography variant='h6' className={classes.title}>
             Medical Delivery
           </Typography>
-          <Button onClick={() => navigate(Pages.ORDER_PLACEMENT)} color="inherit">Order</Button>
-          <Button onClick={() => navigate(Pages.ORDER_TRACKING)} color="inherit">Status</Button>
-          <Button onClick={() => navigate(Pages.ORDER_AUDIT)} color="inherit">Audit</Button>
+          <Button onClick={() => navigate(Pages.ORDER_PLACEMENT)} color='inherit'>Order</Button>
+          <Button onClick={() => navigate(Pages.ORDER_TRACKING)} color='inherit'>Status</Button>
+          <Button onClick={() => navigate(Pages.ORDER_AUDIT)} color='inherit'>Audit</Button>
         </Toolbar>
       </AppBar>
     </div>
