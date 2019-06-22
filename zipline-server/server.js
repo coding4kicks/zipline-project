@@ -72,9 +72,9 @@ app.get('/inventory', (req, res) => res.json(Inventory));
 
 app.get('/hospitals', (req, res) => res.json(Hospitals));
 
-app.post('/schedule_order', (req, res) => res.send("success"));
+app.post('/schedule_order', (req, res) => res.json({success: true}));
 
-app.post('/confirm_order', (req, res) => res.send("success"));
+app.post('/confirm_order', (req, res) => res.json({success: true}));
 
 app.get('/orders', (req, res) => res.json(["1", "2"]));
 

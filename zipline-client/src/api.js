@@ -21,16 +21,36 @@ export function getInventory() {
 }
 
 export function scheduleOrder(order) {
-  console.log('scheduling order', order);
   return new Promise((resolve, reject) => {
-    setTimeout(function(){ resolve('order scheduled') }, 3000);
+    fetch(`${host}/schedule_order`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(order)
+    }).then(response => {
+      return response.json()
+    }).then(data => {
+      resolve(data);
+    }).catch(error => reject(error));
   });
 }
 
 export function confirmOrder(orderId) {
-  console.log('schedulign order', orderId);
   return new Promise((resolve, reject) => {
-    setTimeout(function(){ resolve('order confirmed') }, 3000);
+    fetch(`${host}/confirm_order`, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({id: orderId})
+    }).then(response => {
+      return response.json()
+    }).then(data => {
+      resolve(data);
+    }).catch(error => reject(error));
   });
 }
 
