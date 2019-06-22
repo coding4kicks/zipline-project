@@ -25,7 +25,16 @@ const Inventory = [{
   'mass_g':750.0,
   'product':'RBC C+ Adult',
   'quantity':3
-}]
+}];
+
+const Order = {
+  id: "1",
+  flights: [{
+    "delivered":false,"delivery_eta_s":1742,"hospital":1,"id":17,"products":['RBC C+ Adult','RBC C+ Adult'], "state":"SHIPPED"
+  }, {
+    "delivered":true,"hospital":1,"id":18,"products":['RBC B Adult'], "state":"DELIVERED"
+  }]
+}
 
 export function getHospitals() {
   return new Promise((resolve, reject) => {
@@ -50,5 +59,19 @@ export function confirmOrder(orderId) {
   console.log('schedulign order', orderId);
   return new Promise((resolve, reject) => {
     setTimeout(function(){ resolve('order confirmed') }, 3000);
+  });
+}
+
+export function getOrders() {
+  console.log('fetching all orders');
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve(["1", "2"]) }, 1000);
+  });
+}
+
+export function getOrderStatus(orderId) {
+  console.log('fetching order status');
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve(Order) }, 3000);
   });
 }
