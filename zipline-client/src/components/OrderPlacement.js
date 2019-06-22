@@ -131,7 +131,7 @@ class OrderPlacement extends React.Component {
       dialogOpen: true,
       dialogTitle: 'Scheduling your order...',
       dialogDescription: (
-        <span style={{minWidth: '400px'}}>
+        <span>
           {this.state.products.map(productItem => {
             const {id, count, product} = productItem;
             return (
