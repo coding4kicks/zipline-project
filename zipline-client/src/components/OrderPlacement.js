@@ -48,9 +48,11 @@ class OrderPlacement extends React.Component {
   }
 
   componentDidMount() {
-    const hospitals = getHospitals();
-    const inventory = getInventory();
-    this.setState({hospitals, inventory});
+    const hospitalsPromise = getHospitals();
+    const inventoryPromise = getInventory();
+    Promise.all([hospitalsPromise, inventoryPromise]).then(results => {
+      this.setState({hospitals: results[0], inventory: results[1]});
+    })
   }
 
   addItems = () => {

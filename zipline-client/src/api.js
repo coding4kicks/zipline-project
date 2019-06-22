@@ -28,9 +28,13 @@ const Inventory = [{
 }]
 
 export function getHospitals() {
-  return Hospitals;
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve(Hospitals) }, 1000);
+  });
 }
 
 export function getInventory() {
-  return Inventory
+  return new Promise((resolve, reject) => {
+    setTimeout(function(){ resolve(Inventory) }, 1000);
+  });
 }
