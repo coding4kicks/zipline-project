@@ -4,9 +4,8 @@ import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
 import Typography from '@material-ui/core/Typography';
 import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
+import { Pages } from '../utility';
 import logo from '../logo.svg';
-//import MenuIcon from '@material-ui/icons/Menu';
 
 const useStyles = makeStyles(theme => ({
   root: {
@@ -20,7 +19,7 @@ const useStyles = makeStyles(theme => ({
   },
 }));
 
-function ZiplineAppBar() {
+function ZiplineAppBar({ navigate }) {
   const classes = useStyles();
 
   return (
@@ -31,9 +30,9 @@ function ZiplineAppBar() {
           <Typography variant="h6" className={classes.title}>
             Medical Delivery
           </Typography>
-          <Button color="inherit">Order</Button>
-          <Button color="inherit">Status</Button>
-          <Button color="inherit">Audit</Button>
+          <Button onClick={() => navigate(Pages.ORDER_PLACEMENT)} color="inherit">Order</Button>
+          <Button onClick={() => navigate(Pages.ORDER_TRACKING)} color="inherit">Status</Button>
+          <Button onClick={() => navigate(Pages.ORDER_AUDIT)} color="inherit">Audit</Button>
         </Toolbar>
       </AppBar>
     </div>

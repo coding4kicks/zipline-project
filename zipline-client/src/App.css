@@ -4,6 +4,14 @@
   pointer-events: none;
 }
 
+.Page {
+  background: #efefef;
+  height: 100%;
+  height: -webkit-fill-available; 
+  height: -moz-available;
+  padding: 32px;
+}
+
 @keyframes App-logo-spin {
   from {
     transform: rotate(0deg);
