@@ -26,72 +26,52 @@ import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import { Pages, findByProp } from '../utility';
+import { getHospitals, getInventory } from '../api';
 import '../App.css';
-
-const Hospitals = [{
-  'flight_time_s':2134,
-  'id':1,
-  'name':'Bigogwe'
-}, {
-  'flight_time_s':2434,
-  'id':2,
-  'name':'Littgogwe'
-}];
-
-const Inventory = [{
-  'id':1,
-  'mass_g':700.0,
-  'product':'RBC A+ Adult',
-  'quantity':30
-},
-{
-  'id':2,
-  'mass_g':600.0,
-  'product':'RBC B+ Adult',
-  'quantity':30
-},
-{
-  'id':3,
-  'mass_g':750.0,
-  'product':'RBC C+ Adult',
-  'quantity':3
-}]
 
 class OrderPlacement extends React.Component {
   constructor(props) {
     super(props);
     this.state = {
-      hospital: Hospitals[0].id,
+      hospital: 0,
+      hospitals: [],
       count: 1,
-      product: Inventory[0].id,
+      product: 0,
+      inventory: [],
       products: [],
       dialogOpen: false,
-      dialogTitle: "",
-      dialogDescription: "",
-      dialogCloseText: "",
-      dialogConfirmText: ""
+      dialogTitle: '',
+      dialogDescription: '',
+      dialogCloseText: '',
+      dialogConfirmText: ''
     }
+  }
+
+  componentDidMount() {
+    const hospitals = getHospitals();
+    const inventory = getInventory();
+    this.setState({hospitals, inventory});
   }
 
   addItems = () => {
     const products = this.state.products.slice();
     const { count, product: productId } = this.state;
-    const productItem = findByProp(Inventory, productId, 'id');
+    const productItem = findByProp(this.state.inventory, productId, 'id');
     
     // Don't add if product is already in order or count is more than inventory
     if (findByProp(products, productItem.id, 'productId')) {
       return this.setState({
         dialogOpen: true,
-        dialogTitle: "Item already in order",
-        dialogDescription: "Please remove the item prior to adding again.",
-        dialogCloseText: "Okay"
+        dialogTitle: 'Item already in order',
+        dialogDescription: 'Please remove the item prior to adding again.',
+        dialogCloseText: 'Okay'
       });
     } else if (count > productItem.quantity) {
       return this.setState({
         dialogOpen: true,
-        dialogTitle: "Not enough items in inventory",
-        dialogDescription: "Please select fewer items.",
-        dialogCloseText: "Okay"
+        dialogTitle: 'Not enough items in inventory',
+        dialogDescription: 'Please select fewer items.',
+        dialogCloseText: 'Okay'
       });
     }
 
@@ -117,7 +97,7 @@ class OrderPlacement extends React.Component {
   }
 
   handleConfirm = () => {
-    console.log("order", this.state.products);
+    console.log('order', this.state.products);
     this.setState({ dialogOpen: false }, () => this.props.navigate(Pages.ORDER_TRACKING))
   }
 
@@ -125,7 +105,7 @@ class OrderPlacement extends React.Component {
     // TODO: call back end to schedule then launch dialog
     this.setState({
       dialogOpen: true,
-      dialogTitle: "Confirm Your Order",
+      dialogTitle: 'Confirm Your Order',
       dialogDescription: (
         <span>
           {this.state.products.map(productItem => {
@@ -138,29 +118,35 @@ class OrderPlacement extends React.Component {
           })}
         </span>
       ),
-      dialogCloseText: "Cancel",
-      dialogConfirmText: "Confirm"
+      dialogCloseText: 'Cancel',
+      dialogConfirmText: 'Confirm'
     })
   }
 
   renderHospitalMenuItems = () => {
     const menuItems = [
-      <MenuItem key='0' value=''><em>None</em></MenuItem>
-    ]
+      <MenuItem key='0' value={0}><em>None</em></MenuItem>
+    ];
 
-    Hospitals.forEach(hospital => {
+    this.state.hospitals.forEach(hospital => {
       const {id, name} = hospital;
       menuItems.push(<MenuItem key={id} value={id}>{name}</MenuItem>);
-    })
+    });
 
     return menuItems;
   }
 
   renderProductMenuItems = () => {
-    return Inventory.map(item => {
+    const menuItems = [
+      <MenuItem key='0' value={0}><em>None</em></MenuItem>
+    ];
+
+    this.state.inventory.forEach(item => {
       const {id, product} = item;
-      return <MenuItem key={id} value={id}>{product}</MenuItem>;
-    })
+      menuItems.push(<MenuItem key={id} value={id}>{product}</MenuItem>);
+    });
+
+    return menuItems;
   }
 
   renderProducts = () => {
@@ -183,7 +169,7 @@ class OrderPlacement extends React.Component {
             secondary={`Mass: ${mass}`}
           />
           <ListItemSecondaryAction>
-            <IconButton onClick={() => this.removeItem(id)} edge="end" aria-label="Delete">
+            <IconButton onClick={() => this.removeItem(id)} edge='end' aria-label='Delete'>
               <DeleteIcon />
             </IconButton>
           </ListItemSecondaryAction>
@@ -272,7 +258,7 @@ class OrderPlacement extends React.Component {
 
           <div>
             <h5>Order</h5>
-            <List dense={true} style={{maxWidth: "500px"}}>
+            <List dense={true} style={{maxWidth: '500px'}}>
               {this.renderProducts()}
             </List>
           </div>
@@ -280,7 +266,7 @@ class OrderPlacement extends React.Component {
           <br />
           <br />
 
-          <Button onClick={this.scheduleOrder} variant="contained" color="primary" disabled={products.length < 1}>
+          <Button onClick={this.scheduleOrder} variant='contained' color='primary' disabled={products.length < 1}>
             Schedule Order
           </Button>
         </Paper>
@@ -288,21 +274,21 @@ class OrderPlacement extends React.Component {
         <Dialog
           open={dialogOpen}
           onClose={this.handleClose}
-          aria-labelledby="alert-dialog-title"
-          aria-describedby="alert-dialog-description"
+          aria-labelledby='alert-dialog-title'
+          aria-describedby='alert-dialog-description'
         >
-          <DialogTitle id="alert-dialog-title">{dialogTitle}</DialogTitle>
+          <DialogTitle id='alert-dialog-title'>{dialogTitle}</DialogTitle>
           <DialogContent>
-            <DialogContentText id="alert-dialog-description">
+            <DialogContentText id='alert-dialog-description'>
               {dialogDescription}
             </DialogContentText>
           </DialogContent>
           <DialogActions>
-            <Button onClick={this.handleClose} color="primary">
+            <Button onClick={this.handleClose} color='primary'>
               {dialogCloseText}
             </Button>
             { dialogConfirmText ? (
-              <Button onClick={this.handleConfirm} color="primary" autoFocus>
+              <Button onClick={this.handleConfirm} color='primary' autoFocus>
                 {dialogConfirmText}
               </Button>
             ) : null}
