@@ -60,7 +60,7 @@ class OrderPlacement extends React.Component {
     const products = this.state.products.slice();
     const { count, product: productId } = this.state;
 
-    if (!productId) return console.log("Can't add when no product selected");
+    if (!productId) return console.log('Cant add when no product selected');
 
     const productItem = findByProp(this.state.inventory, productId, 'id');
     
@@ -107,14 +107,18 @@ class OrderPlacement extends React.Component {
       dialogTitle: 'Confirming your order...'
     }, () => {
       confirmOrder(this.state.orderId).then(results => {
-        this.setState({ dialogOpen: false }, () => this.props.navigate(Pages.ORDER_TRACKING))
-      }).catch(error => console.log("Error confirming order", error));
+        getInventory().then(results => {
+          this.setState({ dialogOpen: false, inventory: results }, () => this.props.navigate(Pages.ORDER_TRACKING))
+        }).catch(error => console.log('Error getting inventory', error));
+      }).catch(error => console.log('Error confirming order', error));
     });
   }
 
   scheduleOrder = () => {
+    const hospitalId = this.state.hospital;
+    const hospital = findByProp(this.state.hospitals, hospitalId, 'id');
     const order = {
-      hospital: this.state.hospital,
+      hospital,
       products: this.state.products
     }
 
@@ -145,11 +149,11 @@ class OrderPlacement extends React.Component {
       dialogCloseText: 'Cancel',
       dialogConfirmText: ''
     }, () => {
-      scheduleOrder(order).then(orderId => {
+      scheduleOrder(order).then(results => {
         this.setState({
           dialogTitle: 'Confirm your order',
           dialogConfirmText: 'Confrim',
-          orderId: orderId   
+          orderId: results.id   
         });
       }).catch(error => console.log('Error scheduling order', error));
     });

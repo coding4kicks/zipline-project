@@ -54,8 +54,8 @@ class OrderTracking extends React.Component {
     }
 
     return this.state.order.flights.map(flight => {
-      const { id, state, delivery_eta_s, hospital, products } = flight;
-      const primary = `Flight ${id} is deliverying ${products.join(", ")} to hospital ${hospital}`;
+      const { id, state, delivery_eta_s, products } = flight;
+      const primary = `Flight ${id} is deliverying product ${products.join(", ")}`;
       const secondary = `Status: ${state}, ETA: ${delivery_eta_s || 'N/A'}`;
       return (
         <ListItem key={id}>
@@ -111,6 +111,7 @@ class OrderTracking extends React.Component {
 
           <div>
             <h5>Order Status</h5>
+            {this.state.order ? (<div>Hospital: {this.state.order.hospital.name}</div>) : null}
             <List dense={true} style={{maxWidth: '500px'}}>
               {this.renderOrderStatus()}
             </List>
