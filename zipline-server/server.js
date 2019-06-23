@@ -1,35 +1,11 @@
 const express = require('express');
+const fetch = require('node-fetch');
 const app = express();
 const port = 3001;
 
-const Hospitals = [{
-  'flight_time_s':2134,
-  'id':1,
-  'name':'Bigogwe'
-}, {
-  'flight_time_s':2434,
-  'id':2,
-  'name':'Littgogwe'
-}];
-
-const Inventory = [{
-  'id':1,
-  'mass_g':700.0,
-  'product':'RBC A+ Adult',
-  'quantity':30
-},
-{
-  'id':2,
-  'mass_g':600.0,
-  'product':'RBC B+ Adult',
-  'quantity':30
-},
-{
-  'id':3,
-  'mass_g':750.0,
-  'product':'RBC C+ Adult',
-  'quantity':3
-}];
+// In-Memory Data
+let Hospitals = null;
+let Inventory = null;
 
 const Order = {
   id: "1",
@@ -62,15 +38,39 @@ const FulfilledOrders = [{
   }]
 }];
 
+const api = 'http://localhost:12345';
+
 app.use(function(req, res, next) {
   res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
   next();
 });
 
-app.get('/inventory', (req, res) => res.json(Inventory));
+app.get('/inventory', (req, res) => {
+  if (Inventory) {
+    res.json(Inventory)
+  }
 
-app.get('/hospitals', (req, res) => res.json(Hospitals));
+  fetch(`${api}/inventory`).then(response => {
+    return response.json()
+  }).then(data => {
+    Inventory = data;
+    res.json(Inventory)
+  }).catch(error => Error(error));
+});
+
+app.get('/hospitals', (req, res) => {
+  if (Hospitals) {
+    res.json(Hospitals)
+  }
+
+  fetch(`${api}/hospitals`).then(response => {
+    return response.json()
+  }).then(data => {
+    Hospitals = data;
+    res.json(Hospitals)
+  }).catch(error => Error(error));
+});
 
 app.post('/schedule_order', (req, res) => res.json({success: true}));
 
