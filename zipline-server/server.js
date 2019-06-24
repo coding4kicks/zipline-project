@@ -14,8 +14,8 @@ const api = 'http://localhost:12345';
 
 // Allow CORS
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
   next();
 });
 
@@ -155,7 +155,7 @@ app.post('/schedule_order', (req, res, next) => {
   setTimeout(() => {
     // Wait for all requests to return
     Promise.all(flightReqs).then(results => {
-      // console.log("Flight request results");
+      // console.log('Flight request results');
       // console.log(JSON.stringify(results));
 
       // TODO: refactor code to retry error queue
@@ -172,7 +172,8 @@ app.post('/schedule_order', (req, res, next) => {
         id: orderId,
         flights: orderFlights,
         hospital,
-        products
+        products,
+        failed: []
       };
 
       // Update inventory - should really use a map or db
@@ -190,6 +191,8 @@ app.post('/schedule_order', (req, res, next) => {
   }, wait + WAIT_DELTA);
 });
 
+let failCount = 0; // use for testing
+
 /**
  * Confirm an Order API
  */
@@ -205,9 +208,12 @@ app.post('/confirm_order', (req, res, next) => {
   const WAIT_DELTA = 50;
   order.flights.forEach(flight => {
     setTimeout(() => {
-      // console.log("confirm flight");
+      // console.log('confirm flight');
       // console.log(JSON.stringify(flight), null, 2);
-      confReq.push(fetch(`${api}/flight/${flight.id}/confirm`, {
+      failCount = failCount + 1
+      const testFail = ''; // failCount === 1 ? '?fail=1' : '';
+      
+      confReq.push(fetch(`${api}/flight/${flight.id}/confirm${testFail}`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
@@ -283,7 +289,7 @@ app.get('/audit_orders', (req, res) => {
 
 function checkFlightStatus() {
   // Accelerate time for testing
-  const TIME_JUMP = 1800;
+  const TIME_JUMP = 1000;
   fetch(`${api}/step_time`, {
     method: 'POST',
     headers: {
@@ -295,11 +301,11 @@ function checkFlightStatus() {
 
   // Fetch all current flights for all open orders
   const completedFlights = [];
-  console.log("CHECK FLIGHT STATUS");
+  console.log('CHECK FLIGHT STATUS');
   OpenOrders.forEach(orderId => {
     const order = Orders[orderId];
     const { flights } = order;
-    const currFlights = flights.filter(flight => flight.state !== "COMPLETE");
+    const currFlights = flights.filter(flight => flight.state !== 'COMPLETE');
 
     if (currFlights.length < 1) {
       completedFlights.push(orderId)
@@ -311,8 +317,8 @@ function checkFlightStatus() {
       // Make flight tracking api requests
       setTimeout(() => {
         order.flights.forEach(flight => {
-          console.log("fetch flight");
-          console.log(JSON.stringify(flight));
+          // console.log('fetch flight');
+          // console.log(JSON.stringify(flight));
           const req = fetch(`${api}/flight/${flight.id}`, {
             method: 'GET',
             headers: {
@@ -333,14 +339,16 @@ function checkFlightStatus() {
         Promise.all(trackReq).then(results => {
           // TODO: refactor code to filter errors and put into retry queue
           // Don't move to confirm until all flights scheduled
-          console.log("RESULTS", JSON.stringify(results, null, 2));
+          // console.log('RESULTS', JSON.stringify(results, null, 2));
           const errorQueue = results.filter(result => result['error']);
           const cleanQueue = results.filter(result => !result['error'])
           Orders[orderId].flights = cleanQueue;
 
           // Check for Mission failures
           results.forEach(result => {
-            if (result.state === 'MISSION_FAILURE') {
+            const inFailed = Orders[orderId].failed.indexOf(result.id) > -1;
+            if (result.state === 'MISSION_FAILURE' && !inFailed) {
+              // console.log('********MISSION FAILURE*******')
               // Retry - TODO: exponential backoff with manual intervention
               // Possible invalid inventory state since not adjusting for two drones airborne
               // mission failed drone and newly scheduled drone
@@ -358,25 +366,28 @@ function checkFlightStatus() {
               }).then(response => {
                 return response.json()
               }).then(flightData => {
-                fetch(`${api}/flight/${data.id}/confirm`, {
+                fetch(`${api}/flight/${flightData.id}/confirm`, {
                   method: 'POST',
                   headers: {
                     'Accept': 'application/json',
                     'Content-Type': 'application/json'
                   }
-                }).then(response => {
+                }).then(() => {
                    // Only add once confirmed since Queue is being checked
+                   const newFlights = Orders[orderId].flights.concat(flightData);
+                   const failedFlights = Orders[orderId].failed.concat(result.id);
                    Orders[orderId] = {
-                    id: Orders[orderId].orderId,
-                    flights: Orders[orderId].flights.concat[flightData],
+                    id: orderId,
+                    flights: newFlights,
                     hospital: Orders[orderId].hospital,
-                    products: Orders[orderId].products
+                    products: Orders[orderId].products,
+                    failed: failedFlights
                   };
-                }).catch(error => console.log("Error auto confirm", error))
-              }).catch(error => console.log("Error auto schedule", error));
+                }).catch(error => console.log('Error auto confirm', error))
+              }).catch(error => console.log('Error auto schedule', error));
             }
           });
-        }).catch(error => console.log("Error checking status", error));
+        }).catch(error => console.log('Error checking status', error));
       }, wait + WAIT_DELTA);
 
     }
