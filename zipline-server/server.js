@@ -289,15 +289,15 @@ app.get('/audit_orders', (req, res) => {
 
 function checkFlightStatus() {
   // Accelerate time for testing
-  const TIME_JUMP = 1000;
-  fetch(`${api}/step_time`, {
-    method: 'POST',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(TIME_JUMP)
-  }) 
+  // const TIME_JUMP = 500;
+  // fetch(`${api}/step_time`, {
+  //   method: 'POST',
+  //   headers: {
+  //     'Accept': 'application/json',
+  //     'Content-Type': 'application/json'
+  //   },
+  //   body: JSON.stringify(TIME_JUMP)
+  // }) 
 
   // Fetch all current flights for all open orders
   const completedFlights = [];
