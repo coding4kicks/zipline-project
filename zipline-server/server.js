@@ -7,7 +7,7 @@ const port = 3001;
 // In-Memory Data
 let Hospitals = null;
 let Inventory = null;
-const OpenOrders = [];
+let OpenOrders = [];
 const Orders = {};
 
 const api = 'http://localhost:12345';
@@ -22,8 +22,9 @@ app.use(function(req, res, next) {
 // Enable JSON handling
 app.use(express.json())
 
-// Check Flight Status Every 10 Seconds
-setInterval(checkFlightStatus, 1000 * 10);
+// Check Flight Status - 10 sec
+const CHECK_INTERVAL = 1000 * 10
+setInterval(checkFlightStatus, CHECK_INTERVAL);
 
 /**
  * Inventory API
@@ -128,8 +129,10 @@ app.post('/schedule_order', (req, res, next) => {
   // Make flight api requests
   const flightReqs = [];
   
-  // Add wait to avoid transaction issues in API db.  Should add error handling.
+  // Add wait to avoid transaction issues in API db.  Should add individual flight error handling / retry.
+  // Should also add bulk load to api to help overcome async vs sync impedence mismaatch.
   let wait = 0;
+  const WAIT_DELTA = 50;
   flights.forEach(flight => {
     setTimeout(() => {
       flightReqs.push(
@@ -145,22 +148,26 @@ app.post('/schedule_order', (req, res, next) => {
         })
       )
     }, wait);
-    wait = wait + 30;
+    wait = wait + WAIT_DELTA;
   });
 
   // Wait until all requests have been issued;
   setTimeout(() => {
     // Wait for all requests to return
     Promise.all(flightReqs).then(results => {
-      console.log("Flight request results");
-      console.log(JSON.stringify(results));
-      const orderFlights = results;
-      const orderId = uuidv4();
-      
-      // Add the order to OpenOrders list - should be in a db
-      OpenOrders.push(orderId);
+      // console.log("Flight request results");
+      // console.log(JSON.stringify(results));
 
-      // Add order to Orders map - should be in a db
+      // TODO: refactor code to retry error queue
+      // and don't move to confirm until all flights scheduled
+      const errorQueue = results.filter(result => result['error']);
+      const cleanQueue = results.filter(result => !result['error'])
+
+      // Only add clean results for processing
+      const orderFlights = cleanQueue;
+      const orderId = uuidv4();
+
+      // Add order to Orders map - should be in a db - wont't trigger updates until confirmed
       Orders[orderId] = {
         id: orderId,
         flights: orderFlights,
@@ -180,7 +187,7 @@ app.post('/schedule_order', (req, res, next) => {
 
       res.json({id: orderId});
     }).catch(next);
-  }, wait + 30);
+  }, wait + WAIT_DELTA);
 });
 
 /**
@@ -193,12 +200,13 @@ app.post('/confirm_order', (req, res, next) => {
   // Make confirm api requests
   const confReq = [];
 
-  // Add wait to avoid transaction issues in API db.  Should add error handling.
+  // Add wait to avoid transaction issues in API db.  Should add individual flight error handling.
   let wait = 0;
-  order.flights.map(flight => {
+  const WAIT_DELTA = 50;
+  order.flights.forEach(flight => {
     setTimeout(() => {
-      console.log("confirm flight");
-      console.log(JSON.stringify(flight), null, 2);
+      // console.log("confirm flight");
+      // console.log(JSON.stringify(flight), null, 2);
       confReq.push(fetch(`${api}/flight/${flight.id}/confirm`, {
         method: 'POST',
         headers: {
@@ -209,16 +217,19 @@ app.post('/confirm_order', (req, res, next) => {
         return response.json()
       }))
     }, wait)
-    wait = wait + 30;
+    wait = wait + WAIT_DELTA;
   });
 
   // Wait until all requests have been issued;
   setTimeout(() => {
     // Wait for all requests to return
     Promise.all(confReq).then(results => {
+      // Add the order to OpenOrders list - should be in a db
+      // Only add when successfully confirmed
+      OpenOrders.push(id);
       res.json({success: true});
     }).catch(next);
-  }, wait + 30);
+  }, wait + WAIT_DELTA);
 });
 
 /**
@@ -242,11 +253,14 @@ app.get('/audit_orders', (req, res) => {
   const allOrders = Object.keys(Orders);
   const fulfilledOrders = allOrders.filter(order => {
     // Only return orders that aren't open
-    OpenOrders.indexOf(order.id) < 0
+    return OpenOrders.indexOf(order.id) < 0
   });
+
+  console.log("full filled", fulfilledOrders);
   
   const hospitalMap = {};
-  fulfilledOrders.forEach(order => {
+  fulfilledOrders.forEach(orderId => {
+    const order = Orders[orderId]
     if (!hospitalMap[order.hospital.id]) {
       hospitalMap[order.hospital.id] = {
         id: order.hospital.id,
@@ -263,7 +277,11 @@ app.get('/audit_orders', (req, res) => {
       });
     }
   })
-  res.json(fulfilledOrders)
+  console.log("fulfilledOrders", JSON.stringify(fulfilledOrders))
+  console.log(hospitalMap);
+  const hospitalsIds = Object.keys(hospitalMap);
+  const hospitalDetails = hospitalsIds.map(id => hospitalMap[id])
+  res.json(hospitalDetails)
   // const FulfilledOrders = [{
   //   name: "Bigogwe",
   //   id: "1",
@@ -277,67 +295,109 @@ app.get('/audit_orders', (req, res) => {
 });
 
 function checkFlightStatus() {
+  // Accelerate time for testing
+  const TIME_JUMP = 1800;
+  fetch(`${api}/step_time`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(TIME_JUMP)
+  }) 
+
   // Fetch all current flights for all open orders
   const completedFlights = [];
   console.log("CHECK FLIGHT STATUS");
   OpenOrders.forEach(orderId => {
     const order = Orders[orderId];
-    console.log(JSON.stringify(order), null, 2);
     const { flights } = order;
     const currFlights = flights.filter(flight => flight.state !== "COMPLETE");
+
     if (currFlights.length < 1) {
       completedFlights.push(orderId)
     } else {
-
+      const trackReq = []
+      // Add wait to avoid transaction issues in API db.  Should add individual flight error handling.
+      let wait = 0;
+      const WAIT_DELTA = 50;
       // Make flight tracking api requests
-      const trackReq = flights.map(flight => {
-        return fetch(`${api}/flight/${flight.id}`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          }
-        }).then(response => {
-          return response.json()
-        })
-      });
-
-      // Wait for all requests to return
-      Promise.all(trackReq).then(results => {
-        Orders[orderId].flights = results;
-        // Check for Mission failures
-        results.forEach(result => {
-          if (result.state === 'MISSION_FAILURE') {
-            // Retry - TODO: exponential backoff with manual intervention
-            // Possible invalid inventory state since not adjusting for two drones airborne
-            const flight = {
-              hospital: result.hospital,
-              products: result.products
+      setTimeout(() => {
+        order.flights.forEach(flight => {
+          console.log("fetch flight");
+          console.log(JSON.stringify(flight));
+          const req = fetch(`${api}/flight/${flight.id}`, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
             }
-            fetch(`${api}/flight`, {
-              method: 'POST',
-              headers: {
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify(flight)
-            }).then(response => {
-              return response.json()
-            }).then(data => {
-              fetch(`${api}/flight/${data.id}/confirm`, {
+          }).then(response => {
+            return response.json()
+          });
+          trackReq.push(req);
+        });
+      }, wait)
+      wait = wait + WAIT_DELTA;
+
+
+      setTimeout(() => {
+        // Wait for all requests to return
+        Promise.all(trackReq).then(results => {
+          // TODO: refactor code to filter errors and put into retry queue
+          // Don't move to confirm until all flights scheduled
+          console.log("RESULTS", JSON.stringify(results, null, 2));
+          const errorQueue = results.filter(result => result['error']);
+          const cleanQueue = results.filter(result => !result['error'])
+          Orders[orderId].flights = cleanQueue;
+
+          // Check for Mission failures
+          results.forEach(result => {
+            if (result.state === 'MISSION_FAILURE') {
+              // Retry - TODO: exponential backoff with manual intervention
+              // Possible invalid inventory state since not adjusting for two drones airborne
+              // mission failed drone and newly scheduled drone
+              const flight = {
+                hospital: result.hospital,
+                products: result.products
+              }
+              fetch(`${api}/flight`, {
                 method: 'POST',
                 headers: {
                   'Accept': 'application/json',
                   'Content-Type': 'application/json'
-                }
-              }).catch(error => console.log("Error auto confirm", error))
-            }).catch(error => console.log("Error auto schedule", error));
-          }
-        });
-      }).catch(error => console.log("Error checking status", error));
+                },
+                body: JSON.stringify(flight)
+              }).then(response => {
+                return response.json()
+              }).then(flightData => {
+                fetch(`${api}/flight/${data.id}/confirm`, {
+                  method: 'POST',
+                  headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                  }
+                }).then(response => {
+                   // Only add once confirmed since Queue is being checked
+                   Orders[orderId] = {
+                    id: Orders[orderId].orderId,
+                    flights: Orders[orderId].flights.concat[flightData],
+                    hospital: Orders[orderId].hospital,
+                    products: Orders[orderId].products
+                  };
+                }).catch(error => console.log("Error auto confirm", error))
+              }).catch(error => console.log("Error auto schedule", error));
+            }
+          });
+        }).catch(error => console.log("Error checking status", error));
+      }, wait + WAIT_DELTA);
 
     }
   })
+  console.log("--------- END -------------", completedFlights);
+  // Remove completed flights from open orders
+  OpenOrders = OpenOrders.filter(orderId => completedFlights.indexOf(orderId) < 0);
+  console.log("open orders", OpenOrders);
 }
 
 app.listen(port, () => console.log(`Server listening on port ${port}!`))
