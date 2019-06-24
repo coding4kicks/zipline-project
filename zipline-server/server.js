@@ -255,8 +255,6 @@ app.get('/audit_orders', (req, res) => {
     // Only return orders that aren't open
     return OpenOrders.indexOf(order.id) < 0
   });
-
-  console.log("full filled", fulfilledOrders);
   
   const hospitalMap = {};
   fulfilledOrders.forEach(orderId => {
@@ -277,21 +275,10 @@ app.get('/audit_orders', (req, res) => {
       });
     }
   })
-  console.log("fulfilledOrders", JSON.stringify(fulfilledOrders))
-  console.log(hospitalMap);
+
   const hospitalsIds = Object.keys(hospitalMap);
   const hospitalDetails = hospitalsIds.map(id => hospitalMap[id])
   res.json(hospitalDetails)
-  // const FulfilledOrders = [{
-  //   name: "Bigogwe",
-  //   id: "1",
-  //   orders: [{
-  //     id: "1",
-  //     products: ['RBC B Adult', 'RBC c Adult']
-  //   },{
-  //     id: "2",
-  //     products: ['RBC A Adult', 'RBC E Adult']
-  //   }]
 });
 
 function checkFlightStatus() {
@@ -394,10 +381,9 @@ function checkFlightStatus() {
 
     }
   })
-  console.log("--------- END -------------", completedFlights);
+
   // Remove completed flights from open orders
   OpenOrders = OpenOrders.filter(orderId => completedFlights.indexOf(orderId) < 0);
-  console.log("open orders", OpenOrders);
 }
 
 app.listen(port, () => console.log(`Server listening on port ${port}!`))
